@@ -26,3 +26,6 @@ BITHUMB_BTC_REAL_TOPIC_NAME: str = parser.get(
 KORBIT_BTC_REAL_TOPIC_NAME: str = parser.get(
     "REALTIMETOPICNAME", "KORBIT_BTC_REAL_TOPIC_NAME"
 )
+
+
+KAFKA_SERVER: str = parser.get("KAFKA", "SERVERS")
