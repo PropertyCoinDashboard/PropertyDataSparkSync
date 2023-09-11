@@ -1,0 +1,12 @@
+requests
+pandas
+numpy
+scikit-learn
+pyspark==3.3.0
+confluent-kafka
+pydantic
+websocket
+websocket-client
+aiokafka
+jinja2
+uvicorn[standard]
