@@ -2,9 +2,9 @@
 pyspark udf 
 """
 import datetime
-
-from connection.schema.data_constructure import CoinPrice, StreamingData
 import numpy as np
+
+from schema.data_constructure import CoinPrice, StreamingData
 
 
 def get_utc_time() -> int:
@@ -36,7 +36,10 @@ def streaming_preprocessing(name: str, *data: tuple) -> str:
     """
     try:
         roww: list[tuple] = list(data)
-        value = [tuple(map(float, item)) for item in zip(*roww)]  # 문자열을 float로 변환
+
+        # 문자열을 float로 변환
+        value: list[tuple[float]] = [tuple(map(float, item)) for item in zip(*roww)]
+
         average: list = np.mean(value, axis=1).tolist()
         data_dict = CoinPrice(
             opening_price=average[0],

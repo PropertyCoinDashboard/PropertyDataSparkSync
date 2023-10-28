@@ -5,23 +5,23 @@ Spark streaming coin average price
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import from_json, col, udf, to_json, struct
-from spark_connection.schema.data_constructure import average_schema, final_schema
-from spark_connection.schema.udf_util import streaming_preprocessing
-from spark_connection.util.properties import KAFKA_SERVER
+from schema.data_constructure import average_schema, final_schema
+from schema.udf_util import streaming_preprocessing
+from util.properties import KAFKA_SERVER
 
 
 # 환경 설정
 spark = (
     SparkSession.builder.appName("myAppName")
     .master("local[*]")
-    .config("spark.streaming.stopGracefullyOnShutdown", "true")
-    .config("spark.streaming.backpressure.enabled", "true")
     .config(
         "spark.jars.packages",
         "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,mysql:mysql-connector-java:8.0.28",
     )
     .config("spark.streaming.stopGracefullyOnShutdown", "true")
+    .config("spark.streaming.backpressure.enabled", "true")
     .config("spark.streaming.kafka.consumer.config.auto.offset.reset", "latest")
+    .config("spark.sql.adaptive.enabled", "false")
     .config("spark.executor.memory", "8g")
     .config("spark.executor.cores", "4")
     .config("spark.cores.max", "16")

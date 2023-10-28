@@ -162,3 +162,6 @@ urls.conf
 poetry.lock
 pyproject.toml
 .vscode
+
+spark_connection/.checkpoint_BTC/
+spark_connection/.checkpoint_ETH/
