@@ -3,6 +3,7 @@ pyspark udf
 """
 import datetime
 import numpy as np
+from typing import Any
 
 from schema.data_constructure import CoinPrice, StreamingData
 
@@ -12,7 +13,7 @@ def get_utc_time() -> int:
     return int(utc_now.timestamp())
 
 
-def streaming_preprocessing(name: str, *data: tuple) -> str:
+def streaming_preprocessing(name: str, *data: tuple) -> dict[str, Any]:
     """average coin price normalization in spark python udf
 
     Args:

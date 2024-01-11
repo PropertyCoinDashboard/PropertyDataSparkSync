@@ -1,7 +1,7 @@
 """
 Spark streaming coin average price 
 """
-
+from __future__ import annotations
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import from_json, col, udf, to_json, struct
@@ -29,7 +29,7 @@ spark = (
 )
 
 
-def stream_injection(topic: str) -> "DataFrame":
+def stream_injection(topic: str) -> DataFrame:
     """spark streaming multithreading
 
     Args:
@@ -47,7 +47,7 @@ def stream_injection(topic: str) -> "DataFrame":
     )
 
 
-def preprocessing(topic: str):
+def preprocessing(topic: str) -> DataFrame:
     stream_df = stream_injection(topic=topic)
     average_udf = udf(streaming_preprocessing, average_schema)
 
