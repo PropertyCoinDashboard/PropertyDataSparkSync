@@ -54,7 +54,20 @@ final_schema = StructType(
     ]
 )
 
+"""
 # 평균값
+{
+    "name": "upbit-ETH",
+    "timestamp": 1689633864.89345,
+    "data": {
+        "opening_price": 2455000.0,
+        "max_price": 2462000.0,
+        "min_price": 2431000.0,
+        "prev_closing_price": 2455000.0,
+        "acc_trade_volume_24h": 11447.92825886,
+    }
+}
+"""
 average_schema = StructType(
     StructType(
         [
