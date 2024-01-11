@@ -79,6 +79,7 @@ average_schema = StructType(
 )
 
 
+# Spark UDF Data Schema
 class CoinPrice(BaseModel):
     opening_price: float
     closing_price: float
