@@ -29,3 +29,7 @@ KORBIT_BTC_REAL_TOPIC_NAME: str = parser.get(
 
 
 KAFKA_SERVER: str = parser.get("KAFKA", "SERVERS")
+
+MYSQL_URL: str = parser.get("MYSQL", "MYSQL_URL")
+MYSQL_USER: str = parser.get("MYSQL", "MYSQL_USER")
+MYSQL_PASSWORD: str = parser.get("MYSQL", "MYSQL_PASSWORD")

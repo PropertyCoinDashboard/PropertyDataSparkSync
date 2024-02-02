@@ -16,13 +16,9 @@ pyspark data schema
 }
 
 """
+
 from pydantic import BaseModel
-from pyspark.sql.types import (
-    StructField,
-    StructType,
-    StringType,
-    LongType,
-)
+from pyspark.sql.types import StructField, StructType, StringType, LongType
 
 
 data_schema = StructType(
@@ -57,7 +53,7 @@ final_schema = StructType(
 """
 # 평균값
 {
-    "name": "upbit-ETH",
+    "name": "ETH",
     "timestamp": 1689633864.89345,
     "data": {
         "opening_price": 2455000.0,
@@ -76,6 +72,15 @@ average_schema = StructType(
             StructField("data", data_schema),
         ]
     ),
+)
+
+schema = StructType(
+    [
+        StructField(
+            "average_price",
+            StructType(average_schema),
+        )
+    ]
 )
 
 
