@@ -7,6 +7,7 @@ import json
 from typing import Any
 from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 from pyspark.sql.functions import from_json, col, udf, to_json, struct
 from pyspark.sql.streaming import StreamingQuery
 from schema.data_constructure import average_schema, final_schema, schema
@@ -24,7 +25,6 @@ spark = (
     .config("spark.streaming.stopGracefullyOnShutdown", "true")
     .config("spark.streaming.backpressure.enabled", "true")
     .config("spark.streaming.kafka.consumer.config.auto.offset.reset", "latest")
-    .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", "true")
     .config("spark.sql.adaptive.enabled", "false")
     .config("spark.executor.memory", "8g")
     .config("spark.executor.cores", "4")
@@ -79,7 +79,7 @@ def preprocessing(topic: str) -> DataFrame:
     )
 
 
-def write_to_mysql(data_format: DataFrame, table_name: str) -> StreamingQuery:
+def write_to_mysql(data_format: DataFrame, table_name: str):
     checkpoint_dir = f".checkpoint_{table_name}"
 
     def write_batch_to_mysql(batch_df: Any, batch_id) -> None:
@@ -103,9 +103,7 @@ def write_to_mysql(data_format: DataFrame, table_name: str) -> StreamingQuery:
     )
 
 
-def topic_to_spark_streaming(
-    name: str, topics: str, retrieve_topic: str
-) -> StreamingQuery:
+def topic_to_spark_streaming(name: str, topics: str, retrieve_topic: str):
     """KAFKA interaction TOPIC Sending data
 
     Args:
@@ -129,9 +127,7 @@ def topic_to_spark_streaming(
     return query
 
 
-def run_spark_streaming(
-    coin_name: str, topics: str, retrieve_topic: str
-) -> StreamingQuery:
+def run_spark_streaming(coin_name: str, topics: str, retrieve_topic: str):
     """
     Spark Streaming 실행 함수
 
@@ -146,15 +142,17 @@ def run_spark_streaming(
         preprocessing(topic=topics)
         .select(from_json("value", schema).alias("value"))
         .select(
-            col("value.average_price.name").alias("name"),
-            col("value.average_price.time").alias("time"),
-            col("value.average_price.data.opening_price").alias("opening_price"),
-            col("value.average_price.data.max_price").alias("max_price"),
-            col("value.average_price.data.min_price").alias("min_price"),
-            col("value.average_price.data.prev_closing_price").alias(
+            F.round(col("value.average_price.name")).alias("name"),
+            F.round(col("value.average_price.time")).alias("time"),
+            F.round(col("value.average_price.data.opening_price")).alias(
+                "opening_price"
+            ),
+            F.round(col("value.average_price.data.max_price")).alias("max_price"),
+            F.round(col("value.average_price.data.min_price")).alias("min_price"),
+            F.round(col("value.average_price.data.prev_closing_price")).alias(
                 "prev_closing_price"
             ),
-            col("value.average_price.data.acc_trade_volume_24h").alias(
+            F.round(col("value.average_price.data.acc_trade_volume_24h")).alias(
                 "acc_trade_volume_24h"
             ),
         )
