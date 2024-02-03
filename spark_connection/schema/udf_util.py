@@ -7,6 +7,7 @@ import numpy as np
 from typing import Any
 
 from schema.data_constructure import CoinPrice, StreamingData
+from pyspark.sql import functions as F
 
 
 def get_utc_time() -> int:
