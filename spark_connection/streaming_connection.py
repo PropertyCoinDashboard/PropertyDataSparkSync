@@ -3,7 +3,6 @@ Spark streaming coin average price
 """
 
 from __future__ import annotations
-from typing import Any
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.streaming import StreamingQuery
 from pyspark.sql.functions import from_json, col, udf, to_json, struct
