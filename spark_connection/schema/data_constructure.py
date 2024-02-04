@@ -94,7 +94,7 @@ class CoinPrice(BaseModel):
     acc_trade_volume_24h: float
 
 
-class StreamingData(BaseModel):
+class AverageCoinPriceData(BaseModel):
     name: str
     time: int
     data: CoinPrice

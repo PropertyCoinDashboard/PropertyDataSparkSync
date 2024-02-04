@@ -1,3 +1,7 @@
+"""
+전역으로 사용할 수 있게 환경 변수 값들 
+"""
+
 import configparser
 from pathlib import Path
 
