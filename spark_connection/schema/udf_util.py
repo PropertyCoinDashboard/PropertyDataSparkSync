@@ -5,7 +5,6 @@ pyspark udf
 import datetime
 import numpy as np
 from typing import Any
-
 from schema.data_constructure import CoinPrice, AverageCoinPriceData
 
 
@@ -36,26 +35,25 @@ def streaming_preprocessing(name: str, *data: tuple) -> dict | dict[str, Any]:
             }
 
     """
-    if not data or any(item is None for item in data):
-        return {}
+    # if not data or any(item is None for item in data):
+    #     return None
 
     try:
-        row: list[tuple[dict[str, Any]]] = list(data)
-
-        # 문자열을 float로 변환
-        value: list[tuple[float,]] = [tuple(map(float, item)) for item in zip(*row)]
+        # row의 타입 힌트 적용
+        row = np.array(data).astype(float)
+        # value의 타입 힌트 적용
+        value: list[tuple[float]] = [tuple(item) for item in row.T]
+        average: list[dict[str, str]] = np.mean(value, axis=1).tolist()
     except (ValueError, TypeError) as error:
-        print(error)
         return {}
 
-    average: list[dict[str, int]] = np.mean(value, axis=1).tolist()
     data_dict = CoinPrice(
-        opening_price=average[0],
-        closing_price=average[1],
-        max_price=average[2],
-        min_price=average[3],
-        prev_closing_price=average[4],
-        acc_trade_volume_24h=average[5],
+        opening_price=str(average[0]),
+        closing_price=str(average[1]),
+        max_price=str(average[2]),
+        min_price=str(average[3]),
+        prev_closing_price=str(average[4]),
+        acc_trade_volume_24h=str(average[5]),
     )
 
     streaming_data = AverageCoinPriceData(

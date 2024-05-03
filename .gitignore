@@ -165,3 +165,4 @@ pyproject.toml
 
 spark_connection/.checkpoint_BTC/
 spark_connection/.checkpoint_ETH/
+spark_connection/config/setting.conf

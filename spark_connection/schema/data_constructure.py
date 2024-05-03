@@ -18,7 +18,13 @@ pyspark data schema
 """
 
 from pydantic import BaseModel
-from pyspark.sql.types import StructField, StructType, StringType, LongType
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    ArrayType,
+    LongType,
+)
 
 
 data_schema = StructType(
@@ -40,6 +46,8 @@ market_schema = StructType(
         StructField("data", data_schema),
     ]
 )
+
+socket_schema = ArrayType(market_schema)
 
 final_schema = StructType(
     [
@@ -74,24 +82,27 @@ average_schema = StructType(
     ),
 )
 
-schema = StructType(
-    [
-        StructField(
-            "average_price",
-            StructType(average_schema),
-        )
-    ]
-)
+
+def average_price_schema(type_: str) -> StructType:
+
+    return StructType(
+        [
+            StructField(
+                type_,
+                StructType(average_schema),
+            )
+        ]
+    )
 
 
 # Spark UDF Data Schema
 class CoinPrice(BaseModel):
-    opening_price: float
-    closing_price: float
-    max_price: float
-    min_price: float
-    prev_closing_price: float
-    acc_trade_volume_24h: float
+    opening_price: str
+    closing_price: str
+    max_price: str
+    min_price: str
+    prev_closing_price: str
+    acc_trade_volume_24h: str
 
 
 class AverageCoinPriceData(BaseModel):
