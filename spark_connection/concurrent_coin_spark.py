@@ -33,7 +33,7 @@ def spark_in_start() -> None:
     """
     multi-Threading in SPARK application
     """
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             run_spark_streaming1,
             "BTC",
