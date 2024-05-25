@@ -28,20 +28,20 @@ class SparkCoinAverageQueryOrganization:
                 col("crypto.korbit.data.trade_price").alias("korbit_price"),
                 F.to_timestamp(F.from_unixtime(col("crypto.upbit.time"))).alias("timestamp")
             )
-            #.withColumn(
-            #    "average_price",
-            #    self.average_price(
-            #        col("name"),
-            #        col("upbit_price"),
-            #        col("bithumb_price"),
-            #        col("coinone_price"),
-            #        col("korbit_price"),
-            #        )
-            #)
             .withColumn(
                 "average_price",
-                (col("upbit_price") + col("bithumb_price") + col("coinone_price") + col("korbit_price")) / 4
+                self.average_price(
+                    col("name"),
+                    col("upbit_price"),
+                    col("bithumb_price"),
+                    col("coinone_price"),
+                    col("korbit_price"),
+                    )
             )
+            #.withColumn(
+            #    "average_price",
+            #    (col("upbit_price") + col("bithumb_price") + col("coinone_price") + col("korbit_price")) / 4
+            #)
             .withWatermark("timestamp", "30 second")
             .groupBy(
                 F.window(col("timestamp"), "1 second", "1 second"),
