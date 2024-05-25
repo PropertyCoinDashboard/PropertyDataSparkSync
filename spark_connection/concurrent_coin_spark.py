@@ -39,14 +39,14 @@ def spark_in_start() -> None:
             "BTC",
             UPBIT_BTC_REAL_TOPIC_NAME,
             BTC_AVERAGE_TOPIC_NAME,
-            "socket",
+            "rest",
         )
         executor.submit(
             run_spark_streaming2,
             "ETH",
             ETH_TOPIC_NAME,
             ETH_AVERAGE_TOPIC_NAME,
-            "socket",
+            "rest",
         )
 
 

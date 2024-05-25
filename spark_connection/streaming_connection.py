@@ -207,12 +207,12 @@ class SparkStreamingCoinAverage(_ConcreteSparkSettingOrganization):
         )
         query2 = self._topic_to_spark_streaming(query_collect)
 
-        query1.awaitTermination()
+        #query1.awaitTermination()
         query2.awaitTermination()
-        # query = (
-        #     self.socket_preprocessing()
-        #     .writeStream.outputMode("update")
-        #     .format("console")
-        #     .start()
-        # )
-        # query.awaitTermination()
+        #query = (
+        #    self.socket_preprocessing()
+        #    .writeStream.outputMode("update")
+        #    .format("console")
+        #    .start()
+        #)
+        #query.awaitTermination()

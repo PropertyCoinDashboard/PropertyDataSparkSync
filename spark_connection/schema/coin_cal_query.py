@@ -28,6 +28,7 @@ class SparkCoinAverageQueryOrganization:
                 col("crypto.bithumb.data").alias("bithumb_price"),
                 col("crypto.coinone.data").alias("coinone_price"),
                 col("crypto.korbit.data").alias("korbit_price"),
+                current_timestamp().alias("timestamp")
             )
             .withColumn(
                 "average_price",
@@ -38,6 +39,11 @@ class SparkCoinAverageQueryOrganization:
                     col("coinone_price"),
                     col("korbit_price"),
                 ).alias("average_price"),
+            )
+            .withWatermark("timestamp", "1 minute")
+            .groupBy(
+                window(F.col("timestamp"), "1 second", "1 second"),
+                F.col("name")
             )
             .select(F.to_json(F.struct(col("average_price"))).alias("value"))
         )
