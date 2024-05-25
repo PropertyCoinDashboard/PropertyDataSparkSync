@@ -13,40 +13,52 @@ from schema.data_constructure import (
 class SparkCoinAverageQueryOrganization:
 
     def __init__(self, kafka_data: DataFrame) -> None:
-        self.average_price = F.udf(streaming_preprocessing, average_schema)
         self.kafka_cast_string = kafka_data.selectExpr("CAST(value AS STRING)")
-
+        self.average_price = F.udf(streaming_preprocessing, average_schema)
     def coin_preprocessing(self) -> DataFrame:
         """데이터 처리 pythonUDF사용"""
-
         return (
-            self.kafka_cast_string.selectExpr("CAST(value AS STRING)")
+            self.kafka_cast_string
             .select(F.from_json("value", schema=final_schema).alias("crypto"))
             .select(
                 F.split(col("crypto.upbit.market"), "-")[1].alias("name"),
-                col("crypto.upbit.data").alias("upbit_price"),
-                col("crypto.bithumb.data").alias("bithumb_price"),
-                col("crypto.coinone.data").alias("coinone_price"),
-                col("crypto.korbit.data").alias("korbit_price"),
-                current_timestamp().alias("timestamp")
+                col("crypto.upbit.data.trade_price").alias("upbit_price"),
+                col("crypto.bithumb.data.trade_price").alias("bithumb_price"),
+                col("crypto.coinone.data.trade_price").alias("coinone_price"),
+                col("crypto.korbit.data.trade_price").alias("korbit_price"),
+                F.to_timestamp(F.from_unixtime(col("crypto.upbit.time"))).alias("timestamp")
             )
+            #.withColumn(
+            #    "average_price",
+            #    self.average_price(
+            #        col("name"),
+            #        col("upbit_price"),
+            #        col("bithumb_price"),
+            #        col("coinone_price"),
+            #        col("korbit_price"),
+            #        )
+            #)
             .withColumn(
                 "average_price",
-                self.average_price(
-                    col("name"),
-                    col("upbit_price"),
-                    col("bithumb_price"),
-                    col("coinone_price"),
-                    col("korbit_price"),
-                ).alias("average_price"),
+                (col("upbit_price") + col("bithumb_price") + col("coinone_price") + col("korbit_price")) / 4
             )
-            .withWatermark("timestamp", "1 minute")
+            .withWatermark("timestamp", "30 second")
             .groupBy(
-                window(F.col("timestamp"), "1 second", "1 second"),
-                F.col("name")
+                F.window(col("timestamp"), "1 second", "1 second"),
+                col("name")
             )
-            .select(F.to_json(F.struct(col("average_price"))).alias("value"))
+            .agg(F.avg(col("average_price")).alias("average_price"))
+            .select(
+                col("window.start").alias("window_start"),
+                col("window.end").alias("window_end"),
+                col("name"),
+                col("average_price")
+
+            )  
+            .select("*")
+        
         )
+        
 
     def socket_preprocessing(self) -> DataFrame:
         """웹소켓 처리"""

@@ -51,4 +51,8 @@ def spark_in_start() -> None:
 
 
 if __name__ == "__main__":
-    spark_in_start()
+    #spark_in_start()
+    run_spark_streaming1("BTC",
+            BTC_TOPIC_NAME,
+            BTC_AVERAGE_TOPIC_NAME,
+            "rest")
