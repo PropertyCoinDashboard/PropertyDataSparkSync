@@ -12,34 +12,34 @@ from schema.data_constructure import (
 )
 
 
-def generate_first_column(field: str) -> Column:
-    return F.first(col(field)).alias(field)
-
-
-def generate_count_column(field: str) -> Column:
-    return F.count(col(field)).alias(f"{field}_count")
-
-
 def field_generator(markets: list[str], fields: list[str]) -> list[DataFrame]:
     return [col(f"{market}.{field}") for market, field in product(markets, fields)]
 
 
-def market_time_geneator(market: list[str], type_: str) -> Column:
-    def generate_time_column(market: str) -> Column:
-        return col(f"crypto.{market}.time")
+def generate_function(process: str, field: list[str]) -> list[Column]:
+    def generate_column(field: str) -> Column:
+        match process:
+            case "count":
+                return F.first(col(field)).alias(field)
+            case "first":
+                return F.count(col(field)).alias(f"{field}_count")
 
-    def generate_data_column(market: str) -> Column:
-        return col(f"crypto.{market}.data").alias(market)
+    return list(map(generate_column, field))
 
-    def generate_market_time(market: str) -> Column:
-        return col(f"{market}_time")
 
-    if type_ == "time":
-        return list(map(generate_time_column, market))
-    elif type_ == "data":
-        return list(map(generate_data_column, market))
-    elif type_ == "w_time":
-        return list(map(generate_market_time, market))
+def market_time_geneator(market: list[str], type_: str) -> list[Column]:
+    def generate_column(market: str) -> Column:
+        match type_:
+            case "time":
+                return col(f"crypto.{market}.time")
+            case "data":
+                return col(f"crypto.{market}.data").alias(market)
+            case "w_time":
+                return col(f"{market}_time")
+            case _:
+                ValueError("No Type")
+
+    return list(map(generate_column, market))
 
 
 def time_instructure(market: list[str]) -> tuple[Column]:
@@ -51,7 +51,6 @@ def time_instructure(market: list[str]) -> tuple[Column]:
 
 
 class SparkCoinAverageQueryOrganization:
-
     def __init__(self, kafka_data: DataFrame) -> None:
         self.kafka_cast_string = kafka_data.selectExpr("CAST(value AS STRING)")
         self.markets = ["upbit", "bithumb", "coinone", "korbit", "gopax"]
@@ -77,7 +76,7 @@ class SparkCoinAverageQueryOrganization:
             )
         )
 
-    def coin_colum_window(self):
+    def coin_colum_window(self) -> DataFrame:
         columns_selection = self.coin_main_columns()
         return (
             columns_selection
@@ -88,8 +87,8 @@ class SparkCoinAverageQueryOrganization:
             )
             .agg(
                 # *[self.get_avg_field(field) for field in self.fields],
-                *list(map(generate_count_column, self.fields))
-                *list(map(generate_first_column, self.fields))
+                *generate_function("count", self.fields),
+                *generate_function("first", self.fields)
             )
             .select(
                 *market_time_geneator(self.markets, "w_time"),
