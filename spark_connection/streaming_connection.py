@@ -214,6 +214,7 @@ class SparkStreamingCoinAverage(_ConcreteSparkSettingOrganization):
             .coin_preprocessing()
             .writeStream.outputMode("update")
             .format("console")
+            .option("truncate","false")
             .start()
         )
         query.awaitTermination()

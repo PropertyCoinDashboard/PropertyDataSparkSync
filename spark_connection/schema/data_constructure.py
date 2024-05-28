@@ -55,6 +55,7 @@ final_schema = StructType(
         StructField("bithumb", market_schema),
         StructField("coinone", market_schema),
         StructField("korbit", market_schema),
+        StructField("gopax", market_schema)
     ]
 )
 

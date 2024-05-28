@@ -14,52 +14,57 @@ class SparkCoinAverageQueryOrganization:
 
     def __init__(self, kafka_data: DataFrame) -> None:
         self.kafka_cast_string = kafka_data.selectExpr("CAST(value AS STRING)")
-        self.average_price = F.udf(streaming_preprocessing, average_schema)
+        self.markets = ["upbit","bithumb","coinone","korbit","gopax"]
+        self.fields = ["opening_price", "trade_price", "max_price", "min_price", "prev_closing_price", "acc_trade_volume_24h"]
+
+    def get_avg_field(self, field):
+        return F.round(
+             (col(f"crypto.upbit.data.{field}").cast("double") + 
+             col(f"crypto.bithumb.data.{field}").cast("double") +
+             col(f"crypto.coinone.data.{field}").cast("double") +
+             col(f"crypto.korbit.data.{field}").cast("double") +
+             col(f"crypto.gopax.data.{field}").cast("double")) / 5,3
+        ).alias(field)
+   
     def coin_preprocessing(self) -> DataFrame:
-        """데이터 처리 pythonUDF사용"""
         return (
             self.kafka_cast_string
             .select(F.from_json("value", schema=final_schema).alias("crypto"))
             .select(
-                F.split(col("crypto.upbit.market"), "-")[1].alias("name"),
-                col("crypto.upbit.data.trade_price").alias("upbit_price"),
-                col("crypto.bithumb.data.trade_price").alias("bithumb_price"),
-                col("crypto.coinone.data.trade_price").alias("coinone_price"),
-                col("crypto.korbit.data.trade_price").alias("korbit_price"),
-                F.to_timestamp(F.from_unixtime(col("crypto.upbit.time"))).alias("timestamp")
-            )
-            .withColumn(
-                "average_price",
-                self.average_price(
-                    col("name"),
-                    col("upbit_price"),
-                    col("bithumb_price"),
-                    col("coinone_price"),
-                    col("korbit_price"),
+                #F.to_timestamp(F.from_unixtime(earlist_timestamp)).alias("timestamp"),
+                F.to_timestamp(F.from_unixtime(
+                    F.least(
+                        col("crypto.upbit.time"),
+                        col("crypto.bithumb.time"),
+                        col("crypto.coinone.time"),
+                        col("crypto.korbit.time"),
+                        col("crypto.gopax.time")
                     )
-            )
-            #.withColumn(
-            #    "average_price",
-            #    (col("upbit_price") + col("bithumb_price") + col("coinone_price") + col("korbit_price")) / 4
-            #)
-            .withWatermark("timestamp", "30 second")
-            .groupBy(
+                )).alias("timestamp"),
+                *[col(f"crypto.{market}.time").alias(f"{market}_time") for market in self.markets],
+                *[self.get_avg_field(field) for field in self.fields]
+                #F.current_timestamp().alias("processed_time")
+            ).withWatermark(
+                "timestamp", "30 seconds"
+            ).groupby(
                 F.window(col("timestamp"), "1 second", "1 second"),
-                col("name")
-            )
-            .agg(F.avg(col("average_price")).alias("average_price"))
-            .select(
+                col("timestamp"),
+                *[col(f"{market}_time") for market in self.markets]
+            ).agg(
+                #*[self.get_avg_field(field) for field in self.fields],
+                *[F.count(col(field)).alias(f"{field}_count") for field in self.fields],
+                *[F.first(col(field)).alias(field) for field in self.fields]
+            ).select(
+                *[col(f"{market}_time") for market in self.markets],
+                F.current_timestamp().alias("processed_time"),
+                col("timestamp"),
+                *[col(field) for field in self.fields],
+                *[col(f"{field}_count") for field in self.fields],
                 col("window.start").alias("window_start"),
-                col("window.end").alias("window_end"),
-                col("name"),
-                col("average_price")
-
-            )  
-            .select("*")
-        
+                col("window.end").alias("window_end")
+            )
         )
         
-
     def socket_preprocessing(self) -> DataFrame:
         """웹소켓 처리"""
         return (
