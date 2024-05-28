@@ -1,5 +1,5 @@
 from itertools import product
-
+from typing import Callable
 from pyspark.sql import DataFrame, Column
 from pyspark.sql import functions as F
 from pyspark.sql.functions import col
@@ -12,24 +12,37 @@ from schema.data_constructure import (
 )
 
 
+def generate_first_column(field: str) -> Column:
+    return F.first(col(field)).alias(field)
+
+
+def generate_count_column(field: str) -> Column:
+    return F.count(col(field)).alias(f"{field}_count")
+
+
 def field_generator(markets: list[str], fields: list[str]) -> list[DataFrame]:
     return [col(f"{market}.{field}") for market, field in product(markets, fields)]
 
 
-def market_time_geneator(market: list[str], type_: str) -> list[DataFrame]:
-    def generate_time_column(market: str) -> DataFrame:
+def market_time_geneator(market: list[str], type_: str) -> Column:
+    def generate_time_column(market: str) -> Column:
         return col(f"crypto.{market}.time")
 
-    def generate_data_column(market: str) -> DataFrame:
+    def generate_data_column(market: str) -> Column:
         return col(f"crypto.{market}.data").alias(market)
+
+    def generate_market_time(market: str) -> Column:
+        return col(f"{market}_time")
 
     if type_ == "time":
         return list(map(generate_time_column, market))
     elif type_ == "data":
         return list(map(generate_data_column, market))
+    elif type_ == "w_time":
+        return list(map(generate_market_time, market))
 
 
-def time_instructure(market: list[str]):
+def time_instructure(market: list[str]) -> tuple[Column]:
     return (
         F.to_timestamp(
             F.from_unixtime(F.least(*market_time_geneator(market, "time")))
@@ -71,15 +84,15 @@ class SparkCoinAverageQueryOrganization:
             .groupby(
                 F.window(col("timestamp"), "1 second", "1 second"),
                 col("timestamp"),
-                *[col(f"{market}_time") for market in self.markets],
+                *market_time_geneator(self.markets, "w_time")
             )
             .agg(
                 # *[self.get_avg_field(field) for field in self.fields],
-                *[F.count(col(field)).alias(f"{field}_count") for field in self.fields],
-                *[F.first(col(field)).alias(field) for field in self.fields],
+                *list(map(generate_count_column, self.fields))
+                *list(map(generate_first_column, self.fields))
             )
             .select(
-                *[col(f"{market}_time") for market in self.markets],
+                *market_time_geneator(self.markets, "w_time"),
                 F.current_timestamp().alias("processed_time"),
                 col("timestamp"),
                 *[col(field) for field in self.fields],
