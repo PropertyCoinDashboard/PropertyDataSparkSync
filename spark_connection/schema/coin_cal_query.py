@@ -1,3 +1,5 @@
+from itertools import product
+
 from pyspark.sql import DataFrame, Column
 from pyspark.sql import functions as F
 from pyspark.sql.functions import col
@@ -10,22 +12,29 @@ from schema.data_constructure import (
 )
 
 
-def field_generator(field: Column) -> list[DataFrame]:
-    fields = [
-        "opening_price",
-        "trade_price",
-        "max_price",
-        "min_price",
-        "prev_closing_price",
-        "acc_trade_volume_24h",
-    ]
-    return [col(f"{field}.{market}") for market in fields]
+def field_generator(markets: list[str], fields: list[str]) -> list[DataFrame]:
+    return [col(f"{market}.{field}") for market, field in product(markets, fields)]
 
 
-def column_generator(data: DataFrame, markets: list[str]) -> DataFrame:
-    for market in markets:
-        data = data.withColumn(market, *field_generator(market))
-    return data
+def market_time_geneator(market: list[str], type_: str) -> list[DataFrame]:
+    def generate_time_column(market: str) -> DataFrame:
+        return col(f"crypto.{market}.time")
+
+    def generate_data_column(market: str) -> DataFrame:
+        return col(f"crypto.{market}.data").alias(market)
+
+    if type_ == "time":
+        return list(map(generate_time_column, market))
+    elif type_ == "data":
+        return list(map(generate_data_column, market))
+
+
+def time_instructure(market: list[str]):
+    return (
+        F.to_timestamp(
+            F.from_unixtime(F.least(*market_time_geneator(market, "time")))
+        ).alias("timestamp"),
+    )
 
 
 class SparkCoinAverageQueryOrganization:
@@ -33,6 +42,14 @@ class SparkCoinAverageQueryOrganization:
     def __init__(self, kafka_data: DataFrame) -> None:
         self.kafka_cast_string = kafka_data.selectExpr("CAST(value AS STRING)")
         self.markets = ["upbit", "bithumb", "coinone", "korbit", "gopax"]
+        self.fields = [
+            "opening_price",
+            "trade_price",
+            "max_price",
+            "min_price",
+            "prev_closing_price",
+            "acc_trade_volume_24h",
+        ]
 
     # fmt: off
     def coin_main_columns(self) -> DataFrame:
@@ -41,26 +58,16 @@ class SparkCoinAverageQueryOrganization:
                 F.from_json("value", schema=final_schema).alias("crypto")
             )
             .select(
-                F.to_timestamp(
-                    F.from_unixtime(
-                        F.least(
-                            col("crypto.upbit.time"),
-                            col("crypto.bithumb.time"),
-                            col("crypto.coinone.time"),
-                            col("crypto.korbit.time"),
-                            col("crypto.gopax.time"),
-                        )
-                    )
-                ).alias("timestamp"),
-                *[col(f"crypto.{market}.data").alias(f"{market}") for market in self.markets],
+                time_instructure(self.markets)
+                *market_time_geneator(self.markets, "data")
+                *field_generator(self.markets, self.fields)
             )
         )
 
     def coin_colum_window(self):
         columns_selection = self.coin_main_columns()
-        data: DataFrame = column_generator(columns_selection, self.markets)
         return (
-            data
+            columns_selection
             .groupby(
                 F.window(col("timestamp"), "1 second", "1 second"),
                 col("timestamp"),
