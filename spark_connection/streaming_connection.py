@@ -191,30 +191,30 @@ class SparkStreamingCoinAverage(_ConcreteSparkSettingOrganization):
         """
         Spark Streaming 실행 함수
         """
-        #if self.type_ == "socket":
+        # if self.type_ == "socket":
         #    connect = "socket_average_price"
         #    query_collect = SparkStructCoin(
         #        self._streaming_kafka_session
         #    ).socket_preprocessing()
-        #elif self.type_ == "rest":
+        # elif self.type_ == "rest":
         #    connect = "average_price"
-       #     query_collect = SparkStructCoin(
-       #         self._streaming_kafka_session
-       #     ).coin_preprocessing()
+        #     query_collect = SparkStructCoin(
+        #         self._streaming_kafka_session
+        #     ).coin_preprocessing()
 
-        #query1 = self._coin_write_to_mysql(
+        # query1 = self._coin_write_to_mysql(
         #    self.saving_to_mysql_query(query_collect, connect), f"table_{self.name}"
-        #)
-        #query2 = self._topic_to_spark_streaming(query_collect)
+        # )
+        # query2 = self._topic_to_spark_streaming(query_collect)
 
-        #query1.awaitTermination()
-        #query2.awaitTermination()
+        # query1.awaitTermination()
+        # query2.awaitTermination()
         query = (
             SparkStructCoin(self._stream_kafka_session())
-            .coin_preprocessing()
+            .coin_colum_window()
             .writeStream.outputMode("update")
             .format("console")
-            .option("truncate","false")
+            .option("truncate", "false")
             .start()
         )
         query.awaitTermination()
