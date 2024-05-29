@@ -1,17 +1,22 @@
-from itertools import product
 from pyspark.sql import DataFrame, Column
 from pyspark.sql import functions as F
 from pyspark.sql.functions import col
-
-from schema.udf_util import streaming_preprocessing
 from schema.data_constructure import (
-    average_schema,
     final_schema,
     socket_schema,
 )
 
 
 def get_avg_field(markets: list[str], field: str) -> Column:
+    """각 거래소 별 평균
+
+    Args:
+        markets (list[str]): 마켓
+        field (str): 각 필드 이름
+
+    Returns:
+        Column: 각 Col Fields
+    """
     columns: list[Column] = [
         F.col(f"crypto.{market}.data.{field}").cast("double") for market in markets
     ]
@@ -20,7 +25,23 @@ def get_avg_field(markets: list[str], field: str) -> Column:
 
 
 def generate_function(process: str, field: list[str]) -> list[Column]:
+    """function 1급 객체 생성
+    Args:
+        process (str): 프로세스
+        field (list[str]): 각 필드
+
+    Returns:
+        list[Column]: [col]
+    """
+
     def generate_column(field: str) -> Column:
+        """
+        Args:
+            field (str): 필드
+
+        Returns:
+            Column: 필드 에 따른 함수
+        """
         match process:
             case "count":
                 return F.first(col(field)).alias(field)
@@ -31,6 +52,15 @@ def generate_function(process: str, field: list[str]) -> list[Column]:
 
 
 def market_time_geneator(market: list[str], type_: str) -> list[Column]:
+    """
+    Args:
+        market (list[str]): list 마켓
+        type_ (str): 각 타입마다 col를 다르게 생성
+
+    Returns:
+        list[Column]: _description_
+    """
+
     def generate_column(market: str) -> Column:
         match type_:
             case "time":
@@ -51,6 +81,8 @@ def time_instructure(markets: list[str]) -> Column:
 
 
 class SparkCoinAverageQueryOrganization:
+    """spark query injection Organization"""
+
     def __init__(self, kafka_data: DataFrame) -> None:
         self.kafka_cast_string = kafka_data.selectExpr("CAST(value AS STRING)")
         self.markets = ["upbit", "bithumb", "coinone", "gopax"]
@@ -64,6 +96,7 @@ class SparkCoinAverageQueryOrganization:
         ]
 
     def coin_main_columns(self) -> DataFrame:
+        """watermark injectional testing"""
         return (
             self.kafka_cast_string.select(
                 F.from_json("value", schema=final_schema).alias("crypto")
@@ -78,6 +111,7 @@ class SparkCoinAverageQueryOrganization:
         )
 
     def coin_colum_window(self) -> DataFrame:
+        """코인 window injectional testing"""
         columns_selection = self.coin_main_columns()
         return (
             columns_selection.groupby(
