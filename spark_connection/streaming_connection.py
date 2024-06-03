@@ -55,6 +55,7 @@ class _ConcreteSparkSettingOrganization(AbstructSparkSettingOrganization):
             .config("spark.jars.packages", f"{SPARK_PACKAGE}")
             # .config('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider')
             # .config("spark.kafka.consumer.cache.capacity", "")
+            .config("spark.sql.session.timeZone", "Asia/Seoul") 
             .config("spark.streaming.stopGracefullyOnShutdown", "true")
             .config("spark.streaming.backpressure.enabled", "true")
             .config("spark.streaming.kafka.consumer.config.auto.offset.reset", "latest")
@@ -212,7 +213,7 @@ class SparkStreamingCoinAverage(_ConcreteSparkSettingOrganization):
         query = (
             SparkStructCoin(self._stream_kafka_session())
             .coin_colum_window()
-            .writeStream.outputMode("update")
+            .writeStream.outputMode("complete")
             .format("console")
             .option("truncate", "false")
             .start()

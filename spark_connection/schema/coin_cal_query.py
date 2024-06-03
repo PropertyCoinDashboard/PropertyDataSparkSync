@@ -75,9 +75,9 @@ def market_time_geneator(market: list[str], type_: str) -> list[Column]:
     return list(map(generate_column, market))
 
 
-def time_instructure(markets: list[str]) -> Column:
-    market_time = [col(f"crypto.{market}.time") for market in markets]
-    return F.to_timestamp(F.from_unixtime(F.least(*market_time))).alias("timestamp")
+def time_instructure() -> Column:
+    market_time = col(f"crypto.timestamp").cast("long")
+    return F.to_timestamp(F.from_unixtime(market_time)).alias("timestamp")
 
 
 class SparkCoinAverageQueryOrganization:
@@ -85,7 +85,7 @@ class SparkCoinAverageQueryOrganization:
 
     def __init__(self, kafka_data: DataFrame) -> None:
         self.kafka_cast_string = kafka_data.selectExpr("CAST(value AS STRING)")
-        self.markets = ["upbit", "bithumb", "coinone", "gopax"]
+        self.markets = ["upbit", "bithumb","korbit", "coinone", "gopax"]
         self.fields = [
             "opening_price",
             "trade_price",
@@ -102,12 +102,13 @@ class SparkCoinAverageQueryOrganization:
                 F.from_json("value", schema=final_schema).alias("crypto")
             )
             .select(
-                time_instructure(self.markets),
-                *market_time_geneator(self.markets, "data"),
-                *market_time_geneator(self.markets, "time"),
-                *[get_avg_field(self.markets, field) for field in self.fields],
+                "*",
+                time_instructure(),
+                #*market_time_geneator(self.markets, "data"),
+                #*market_time_geneator(self.markets, "time"),
+                #*[get_avg_field(self.markets, field) for field in self.fields],
             )
-            .withWatermark("timestamp", "30 seconds")
+            .withWatermark("timestamp", "1 minutes")
         )
 
     def coin_colum_window(self) -> DataFrame:
@@ -116,19 +117,21 @@ class SparkCoinAverageQueryOrganization:
         return (
             columns_selection.groupby(
                 F.window(col("timestamp"), "1 minutes", "1 minutes"),
-                col("timestamp"),
-                *market_time_geneator(self.markets, "w_time"),
+                #col("timestamp"),
+                #*market_time_geneator(self.markets, "w_time"),
             )
             .agg(
-                *generate_function("count", self.fields),
-                *generate_function("first", self.fields),
+                F.count("*").alias("window_count"),
+                #*generate_function("count", self.fields),
+                #*generate_function("first", self.fields)
             )
             .select(
-                *market_time_geneator(self.markets, "w_time"),
+                #*market_time_geneator(self.markets, "w_time"),
                 F.current_timestamp().alias("processed_time"),
-                col("timestamp"),
+                #col("timestamp"),
                 col("window.start").alias("window_start"),
                 col("window.end").alias("window_end"),
+                col("window_count"),
             )
         )
 
