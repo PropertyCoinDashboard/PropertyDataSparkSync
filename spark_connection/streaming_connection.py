@@ -58,6 +58,7 @@ class _ConcreteSparkSettingOrganization(AbstructSparkSettingOrganization):
             .config("spark.streaming.stopGracefullyOnShutdown", "true")
             .config("spark.streaming.backpressure.enabled", "true")
             .config("spark.streaming.kafka.consumer.config.auto.offset.reset", "latest")
+            .config("spark.sql.session.timeZone", "Asia/Seoul")
             .config("spark.sql.adaptive.enabled", "false")
             .config("spark.executor.memory", "8g")
             .config("spark.executor.cores", "4")

@@ -41,7 +41,6 @@ data_schema = StructType(
 market_schema = StructType(
     [
         StructField("market", StringType(), True),
-        StructField("time", LongType(), True),
         StructField("coin_symbol", StringType(), True),
         StructField("data", data_schema),
     ]
@@ -51,11 +50,12 @@ socket_schema = ArrayType(market_schema)
 
 final_schema = StructType(
     [
-        StructField("upbit", market_schema),
-        StructField("bithumb", market_schema),
-        StructField("coinone", market_schema),
-        StructField("korbit", market_schema),
-        StructField("gopax", market_schema)
+        StructField("timestamp", LongType(), True),
+        StructField("upbit", market_schema, True),
+        StructField("bithumb", market_schema, True),
+        StructField("coinone", market_schema, True),
+        StructField("korbit", market_schema, True),
+        StructField("gopax", market_schema, True),
     ]
 )
 

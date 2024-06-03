@@ -24,33 +24,6 @@ def get_avg_field(markets: list[str], field: str) -> Column:
     return F.round(avg_column, 3).alias(field)
 
 
-def generate_function(process: str, field: list[str]) -> list[Column]:
-    """function 1급 객체 생성
-    Args:
-        process (str): 프로세스
-        field (list[str]): 각 필드
-
-    Returns:
-        list[Column]: [col]
-    """
-
-    def generate_column(field: str) -> Column:
-        """
-        Args:
-            field (str): 필드
-
-        Returns:
-            Column: 필드 에 따른 함수
-        """
-        match process:
-            case "count":
-                return F.first(col(field)).alias(field)
-            case "first":
-                return F.count(col(field)).alias(f"{field}_count")
-
-    return list(map(generate_column, field))
-
-
 def market_time_geneator(market: list[str], type_: str) -> list[Column]:
     """
     Args:
@@ -63,21 +36,18 @@ def market_time_geneator(market: list[str], type_: str) -> list[Column]:
 
     def generate_column(market: str) -> Column:
         match type_:
-            case "time":
-                return col(f"crypto.{market}.time").alias(f"{market}_time")
             case "data":
                 return col(f"crypto.{market}.data").alias(market)
-            case "w_time":
-                return col(f"{market}_time")
             case _:
                 ValueError("No Type")
 
     return list(map(generate_column, market))
 
 
-def time_instructure(markets: list[str]) -> Column:
-    market_time = [col(f"crypto.{market}.time") for market in markets]
-    return F.to_timestamp(F.from_unixtime(F.least(*market_time))).alias("timestamp")
+def time_instructure() -> Column:
+    return F.to_timestamp(
+        F.from_unixtime(col("crypto.timestamp") / 1000, "yyyy-MM-dd HH:mm:ss")
+    ).alias("timestamp")
 
 
 class SparkCoinAverageQueryOrganization:
@@ -102,12 +72,13 @@ class SparkCoinAverageQueryOrganization:
                 F.from_json("value", schema=final_schema).alias("crypto")
             )
             .select(
-                time_instructure(self.markets),
-                *market_time_geneator(self.markets, "data"),
-                *market_time_geneator(self.markets, "time"),
-                *[get_avg_field(self.markets, field) for field in self.fields],
+                "*",
+                time_instructure(),
+                # *market_time_geneator(self.markets, "data"),
+                # *market_time_geneator(self.markets, "time"),
+                # *[get_avg_field(self.markets, field) for field in self.fields],
             )
-            .withWatermark("timestamp", "30 seconds")
+            .withWatermark("timestamp", "1 minutes")
         )
 
     def coin_colum_window(self) -> DataFrame:
@@ -116,19 +87,21 @@ class SparkCoinAverageQueryOrganization:
         return (
             columns_selection.groupby(
                 F.window(col("timestamp"), "1 minutes", "1 minutes"),
-                col("timestamp"),
-                *market_time_geneator(self.markets, "w_time"),
+                # col("timestamp"),
+                # *market_time_geneator(self.markets, "w_time"),
             )
             .agg(
-                *generate_function("count", self.fields),
-                *generate_function("first", self.fields),
+                F.count("*").alias("window_count"),
+                # *generate_function("count", self.fields),
+                # *generate_function("first", self.fields)
             )
             .select(
-                *market_time_geneator(self.markets, "w_time"),
+                # *market_time_geneator(self.markets, "w_time"),
                 F.current_timestamp().alias("processed_time"),
-                col("timestamp"),
+                # col("timestamp"),
                 col("window.start").alias("window_start"),
                 col("window.end").alias("window_end"),
+                col("window_count"),
             )
         )
 
