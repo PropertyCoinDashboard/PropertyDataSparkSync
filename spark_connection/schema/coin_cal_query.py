@@ -24,6 +24,17 @@ def get_avg_field(markets: list[str], field: str) -> Column:
     return F.round(avg_column, 3).alias(field)
 
 
+def generate_function(process: str, field: list[str]) -> list[Column]:
+    def generate_column(field: str) -> Column:
+        match process:
+            case "count":
+                return F.first(col(field)).alias(field)
+            case "first":
+                return F.count(col(field)).alias(f"{field}_count")
+
+    return list(map(generate_column, field))
+
+
 def market_time_geneator(market: list[str], type_: str) -> list[Column]:
     """
     Args:
@@ -72,11 +83,10 @@ class SparkCoinAverageQueryOrganization:
                 F.from_json("value", schema=final_schema).alias("crypto")
             )
             .select(
-                "*",
                 time_instructure(),
-                # *market_time_geneator(self.markets, "data"),
-                # *market_time_geneator(self.markets, "time"),
-                # *[get_avg_field(self.markets, field) for field in self.fields],
+                *market_time_geneator(self.markets, "data"),
+                *market_time_geneator(self.markets, "time"),
+                *[get_avg_field(self.markets, field) for field in self.fields],
             )
             .withWatermark("timestamp", "1 minutes")
         )
@@ -87,16 +97,16 @@ class SparkCoinAverageQueryOrganization:
         return (
             columns_selection.groupby(
                 F.window(col("timestamp"), "1 minutes", "1 minutes"),
-                # col("timestamp"),
-                # *market_time_geneator(self.markets, "w_time"),
+                col("timestamp"),
+                *market_time_geneator(self.markets, "w_time"),
             )
             .agg(
                 F.count("*").alias("window_count"),
-                # *generate_function("count", self.fields),
-                # *generate_function("first", self.fields)
+                *generate_function("count", self.fields),
+                *generate_function("first", self.fields),
             )
             .select(
-                # *market_time_geneator(self.markets, "w_time"),
+                *market_time_geneator(self.markets, "w_time"),
                 F.current_timestamp().alias("processed_time"),
                 # col("timestamp"),
                 col("window.start").alias("window_start"),

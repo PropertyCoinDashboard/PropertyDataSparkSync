@@ -49,8 +49,8 @@ class _ConcreteSparkSettingOrganization(AbstructSparkSettingOrganization):
             - spark.executor.cores : Excutor 할당되는 코어 수 설정
             - spark.cores.max : Spark 에서 사용할 수 있는 최대 코어 수
         """
-        return (
-            SparkSession.builder.appName("myAppName")
+        spark = (
+            SparkSession.builder.appName("coin")
             .master("local[*]")
             .config("spark.jars.packages", f"{SPARK_PACKAGE}")
             # .config('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider')
@@ -65,6 +65,8 @@ class _ConcreteSparkSettingOrganization(AbstructSparkSettingOrganization):
             .config("spark.cores.max", "16")
             .getOrCreate()
         )
+        spark.sparkContext.setLogLevel("ERROR")
+        return spark
 
     def _topic_to_spark_streaming(self, data_format: DataFrame) -> StreamingQuery:
         """
@@ -192,30 +194,30 @@ class SparkStreamingCoinAverage(_ConcreteSparkSettingOrganization):
         """
         Spark Streaming 실행 함수
         """
-        # if self.type_ == "socket":
-        #    connect = "socket_average_price"
-        #    query_collect = SparkStructCoin(
-        #        self._streaming_kafka_session
-        #    ).socket_preprocessing()
-        # elif self.type_ == "rest":
-        #    connect = "average_price"
-        #     query_collect = SparkStructCoin(
-        #         self._streaming_kafka_session
-        #     ).coin_preprocessing()
+        if self.type_ == "socket":
+            connect = "socket_average_price"
+            query_collect = SparkStructCoin(
+                self._streaming_kafka_session
+            ).socket_preprocessing()
+        elif self.type_ == "rest":
+            connect = "average_price"
+            query_collect = SparkStructCoin(
+                self._streaming_kafka_session
+            ).coin_preprocessing()
 
         # query1 = self._coin_write_to_mysql(
-        #    self.saving_to_mysql_query(query_collect, connect), f"table_{self.name}"
+        #     self.saving_to_mysql_query(query_collect, connect), f"table_{self.name}"
         # )
-        # query2 = self._topic_to_spark_streaming(query_collect)
+        query2 = self._topic_to_spark_streaming(query_collect)
 
         # query1.awaitTermination()
-        # query2.awaitTermination()
-        query = (
-            SparkStructCoin(self._stream_kafka_session())
-            .coin_colum_window()
-            .writeStream.outputMode("update")
-            .format("console")
-            .option("truncate", "false")
-            .start()
-        )
-        query.awaitTermination()
+        query2.awaitTermination()
+        # query = (
+        #     SparkStructCoin(self._stream_kafka_session())
+        #     .coin_colum_window()
+        #     .writeStream.outputMode("update")
+        #     .format("console")
+        #     .option("truncate", "false")
+        #     .start()
+        # )
+        # query.awaitTermination()

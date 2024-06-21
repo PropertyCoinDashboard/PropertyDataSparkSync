@@ -37,7 +37,7 @@ def spark_in_start() -> None:
         executor.submit(
             run_spark_streaming1,
             "BTC",
-            UPBIT_BTC_REAL_TOPIC_NAME,
+            BTC_TOPIC_NAME,
             BTC_AVERAGE_TOPIC_NAME,
             "rest",
         )
@@ -51,5 +51,5 @@ def spark_in_start() -> None:
 
 
 if __name__ == "__main__":
-    # spark_in_start()
-    run_spark_streaming1("BTC", BTC_TOPIC_NAME, BTC_AVERAGE_TOPIC_NAME, "rest")
+    spark_in_start()
+    # run_spark_streaming1("BTC", BTC_TOPIC_NAME, BTC_AVERAGE_TOPIC_NAME, "rest")
